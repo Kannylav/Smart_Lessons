@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Панель учителя</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<!-- ===== HEADER ===== -->
+<header class="top-bar">
+  <h1>📊 Панель учителя</h1>
+
+  <button id="theme-toggle" class="theme-btn" title="Переключить тему">
+    🌙
+  </button>
+</header>
+
+<div class="container">
+
+  <!-- ===== ОБЩАЯ СТАТИСТИКА ===== -->
+  <section class="stats">
+    <div class="stat-card">
+      <h3>📚 Уроков</h3>
+      <p>{{ lessons|length }}</p>
+    </div>
+
+    <div class="stat-card">
+      <h3>📝 Всего оценок</h3>
+      <p>{{ total_feedback }}</p>
+    </div>
+
+    <div class="stat-card">
+      <h3>⭐ Средняя оценка</h3>
+      <p>{{ avg_rating }}</p>
+    </div>
+  </section>
+
+  <!-- ===== СОЗДАНИЕ УРОКА ===== -->
+  <div class="card create-lesson">
+  <h3>Создать новый урок</h3>
+
+  <form method="post" action="{{ url_for('create_lesson') }}" class="create-form">
+    <input
+      type="text"
+      name="title"
+      placeholder="Название урока"
+      required
+    >
+    <button type="submit">Создать</button>
+  </form>
+</div>
+
+  <!-- ===== СПИСОК УРОКОВ ===== -->
+  <h2>Список уроков</h2>
+
+  {% for lesson in lessons %}
+    <div class="lesson-item">
+      <div class="lesson-info">
+        <b>
+          <a href="{{ url_for('lesson_page', lesson_id=lesson.id) }}">
+            {{ lesson.title }}
+          </a>
+        </b>
+        <div class="muted">Код урока: {{ lesson.code }}</div>
+      </div>
+
+      <div class="lesson-status">
+        {% if lesson.total == 0 %}
+          <span class="status neutral">Нет данных</span>
+        {% elif lesson.dislike_count > 0 %}
+          <span class="status bad">Есть проблемы</span>
+        {% elif lesson.ok_count > 0 %}
+          <span class="status warn">Есть вопросы</span>
+        {% else %}
+          <span class="status good">Всё хорошо</span>
+        {% endif %}
+
+      </div>
+    </div>
+  {% else %}
+    <p class="muted">Уроков пока нет</p>
+  {% endfor %}
+
+</div>
+
+<footer>
+  Анонимная система оценки уроков • Индивидуальный проект Михайловой Ксении
+</footer>
+
+<!-- ===== JS: ПЕРЕКЛЮЧЕНИЕ ТЕМЫ ===== -->
+<script>
+const btn = document.getElementById("theme-toggle");
+
+function applyTheme(theme) {
+  document.body.classList.toggle("light", theme === "light");
+  btn.textContent = theme === "light" ? "🌙" : "☀️";
+}
+
+const savedTheme = localStorage.getItem("theme") || "dark";
+applyTheme(savedTheme);
+
+btn.onclick = () => {
+  const newTheme = document.body.classList.contains("light") ? "dark" : "light";
+  localStorage.setItem("theme", newTheme);
+  applyTheme(newTheme);
+};
+</script>
+
+</body>
+</html>

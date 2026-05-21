@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ lesson.title }}</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container">
+
+  <a class="back" href="/">← Назад к списку уроков</a>
+
+  <h1>{{ lesson.title }}</h1>
+  <p class="muted">Код урока: <b>{{ lesson.code }}</b></p>
+
+  <!-- ===== Общая статистика ===== -->
+  <div class="card {% if stats.dislike_count > stats.like_count %}problem{% endif %}">
+    <h2>Общая статистика</h2>
+
+    <p>Всего ответов: <b>{{ stats.total or 0 }}</b></p>
+
+    <p>Средняя оценка:</p>
+    <div class="rating-scale">
+      {% for i in range(1, 6) %}
+        <div class="rating-dot
+          {% if stats.avg_rating and i <= stats.avg_rating|round(0, 'floor') %}
+            active
+          {% endif %}
+        "></div>
+      {% endfor %}
+    </div>
+
+    {% if stats.dislike_count > stats.like_count %}
+      <p class="text-warning">
+        Материал вызвал затруднения у части учеников.
+      </p>
+    {% else %}
+      <p class="text-ok">
+        В целом материал был понятен большинству учеников.
+      </p>
+    {% endif %}
+  </div>
+
+  <!-- ===== Настроение класса ===== -->
+  <div class="card">
+    <h2>Настроение класса</h2>
+
+    <div class="stats-inline">
+      <span>👍 Понятно: <b>{{ stats.like_count }}</b></span>
+      <span>😐 Средне: <b>{{ stats.ok_count }}</b></span>
+      <span>👎 Непонятно: <b>{{ stats.dislike_count }}</b></span>
+    </div>
+
+    {% if stats.total >= 1 %}
+      <div class="chart-container">
+        <canvas id="moodChart"></canvas>
+      </div>
+    {% else %}
+      <p class="muted">Недостаточно данных для построения графика</p>
+    {% endif %}
+  </div>
+
+  <!-- ===== Распределение оценок ===== -->
+  <div class="card">
+    <h2>Распределение оценок</h2>
+
+    {% if rating_stats %}
+      <div class="chart-container">
+        <canvas id="ratingChart"></canvas>
+      </div>
+    {% else %}
+      <p class="muted">Пока нет оценок</p>
+    {% endif %}
+  </div>
+
+  <!-- ===== Анонимные вопросы ===== -->
+  <div class="card">
+    <h2>Анонимные вопросы</h2>
+    <ul>
+      {% for q in questions %}
+        <li>{{ q.text }}</li>
+      {% else %}
+        <li class="muted">Пока вопросов нет</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- ===== Отзывы ===== -->
+<div class="card">
+  <h2>Отзывы и оценки</h2>
+
+  <ul class="feedback-list">
+    {% for c in comments %}
+      <li class="feedback-item mood-{{ c.mood }}">
+        <div class="feedback-header">
+          <span class="mood-icon">
+            {% if c.mood == "like" %}👍
+            {% elif c.mood == "ok" %}😐
+            {% elif c.mood == "dislike" %}👎
+            {% endif %}
+          </span>
+
+          <span class="rating">
+            {{ c.rating }}/5
+          </span>
+        </div>
+
+        <div class="feedback-text">
+          {{ c.comment }}
+        </div>
+      </li>
+    {% else %}
+      <li class="empty">Пока отзывов нет</li>
+    {% endfor %}
+  </ul>
+</div>
+
+
+<footer>
+  🔒 Все отзывы и вопросы отправлены анонимно
+</footer>
+
+<script>
+/* ===== График настроения ===== */
+{% if stats.total >= 1 %}
+new Chart(document.getElementById("moodChart"), {
+  type: "pie",
+  data: {
+    labels: [
+      "Понятно \uD83D\uDC4D",
+      "Средне \uD83D\uDE10",
+      "Непонятно \uD83D\uDC4E"
+    ],
+    datasets: [{
+      data: [
+        {{ stats.like_count }},
+        {{ stats.ok_count }},
+        {{ stats.dislike_count }}
+      ],
+      backgroundColor: ["#22c55e", "#facc15", "#ef4444"]
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: "top" }
+    }
+  }
+});
+{% endif %}
+
+/* ===== График оценок ===== */
+{% if rating_stats %}
+const ratingLabels = [];
+const ratingCounts = [];
+
+{% for row in rating_stats %}
+ratingLabels.push("{{ row.rating }}");
+ratingCounts.push({{ row.count }});
+{% endfor %}
+
+new Chart(document.getElementById("ratingChart"), {
+  type: "bar",
+  data: {
+    labels: ratingLabels,
+    datasets: [{
+      label: "Количество учеников",
+      data: ratingCounts,
+      backgroundColor: "#4a6cf7"
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: { stepSize: 1 }
+      }
+    }
+  }
+});
+{% endif %}
+</script>
+
+</body>
+</html>
